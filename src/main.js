@@ -16,43 +16,35 @@ bot.command('start', initCommand)
 
 bot.on(message('voice'), async (ctx) => {
   ctx.session ??= INITIAL_SESSION
-  try {
-    await ctx.reply('Сообщение принял. Жду ответ от сервера...')
-    const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id)
-    const userId = String(ctx.message.from.id)
-    const oggPath = await ogg.create(link.href, userId)
-    const mp3Path = await ogg.toMp3(oggPath, userId)
+  await ctx.reply('Ждем ответ от сервера...')
+  const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id)
+  const userId = String(ctx.message.from.id)
+  const oggPath = await ogg.create(link.href, userId)
+  const mp3Path = await ogg.toMp3(oggPath, userId)
 
-    removeFile(oggPath)
+  removeFile(oggPath)
 
-    const text = await openai.transcription(mp3Path)
+  const text = await openai.transcription(mp3Path)
 
-    await processTextToChat(ctx, text)
-  } catch (e) {
-    console.log(`Error while voice message`, e.message)
-  }
+  await processTextToChat(ctx, text)
 })
 
 bot.on(message('text'), async (ctx) => {
   ctx.session ??= INITIAL_SESSION
-  try {
-    await ctx.reply('Сообщение принял. Жду ответ от сервера...')
-    ctx.session.messages.push({
-      role: openai.roles.USER,
-      content: ctx.message.text
-    })
+  await ctx.reply('Ждем ответ от сервера...')
+  ctx.session.messages.push({
+    role: openai.roles.USER,
+    content: ctx.message.text
+  })
 
-    const response = await openai.chat(ctx.session.messages)
+  const response = await openai.chat(ctx.session.messages)
 
-    ctx.session.messages.push({
-      role: openai.roles.ASSISTANT,
-      content: response.content
-    })
+  ctx.session.messages.push({
+    role: openai.roles.ASSISTANT,
+    content: response.content
+  })
 
-    await ctx.reply(response.content)
-  } catch (e) {
-    console.log('errorrrrrr', e.message);
-  }
+  await ctx.reply(response.content)
 })
 
 bot.launch()
