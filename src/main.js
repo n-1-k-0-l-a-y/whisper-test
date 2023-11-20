@@ -1,32 +1,40 @@
-import { Telegraf } from "telegraf";
-import { message } from "telegraf/filters";
-import config from "config";
-import { ogg } from "./ogg.js";
-import { openai } from "./openai.js";
+import { Telegraf, session } from 'telegraf'
+import { message } from 'telegraf/filters'
+import config from 'config'
+import { ogg } from './ogg.js'
+import { openai } from './openai.js'
+import { removeFile } from './utils.js'
+import { initCommand, processTextToChat, INITIAL_SESSION } from './logic.js'
 
-const bot = new Telegraf(config.get('TG_TOKEN'));
+const bot = new Telegraf(config.get('TG_TOKEN'))
+
+bot.use(session())
+
+bot.command('new', initCommand)
+
+bot.command('start', initCommand)
 
 bot.on(message('voice'), async (ctx) => {
+  ctx.session ??= INITIAL_SESSION
   try {
-    const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
-    const userId = String(ctx.message.from.id);
-    const oggPath = await ogg.create(link.href, userId);
-    const mp3Path = await ogg.toMp3(oggPath, userId);
+    await ctx.reply('Сообщение принял. Жду ответ от сервера...')
+    const link = await ctx.telegram.getFileLink(ctx.message.voice.file_id)
+    const userId = String(ctx.message.from.id)
+    const oggPath = await ogg.create(link.href, userId)
+    const mp3Path = await ogg.toMp3(oggPath, userId)
 
-    const text = await openai.transcription(mp3Path);
-    // const response = await openai.chat(text);
+    removeFile(oggPath)
 
-    await ctx.reply(text);
+    const text = await openai.transcription(mp3Path)
+    await ctx.reply(`Ваш запрос: ${text}`)
+
+    await processTextToChat(ctx, text)
   } catch (e) {
-    console.log('Error while voice message', e.message);
+    console.log(`Error while voice message`, e.message)
   }
 })
 
-bot.command('star', async (ctx) => {
-  await ctx.reply();
-})
+bot.launch()
 
-bot.launch();
-
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+process.once('SIGINT', () => bot.stop('SIGINT'))
+process.once('SIGTERM', () => bot.stop('SIGTERM'))
