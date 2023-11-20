@@ -1,1 +1,3 @@
-node.js tg bot -- allows you to communicate with ChatGPT using voice or text messages
+Node.js Telegram Bot
+
+Communicate with ChatGPT using voice or text messages
