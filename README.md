@@ -1,1 +1,1 @@
-* node.js telegram bot - provides communication with chatgpt using voice messages (via whisper model).
+* Node.js Telegram bot - provides communication with ChatGPT using voice messages (via [Whisper](https://github.com/openai/whisper) model)
